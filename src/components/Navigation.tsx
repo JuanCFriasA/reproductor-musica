@@ -14,8 +14,8 @@ export function Sidebar() {
     <aside className="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface-low border-r-4 border-primary shadow-2xl flex-col pt-8 pb-28 z-40">
       <div className="px-6 mb-8 group cursor-pointer">
         <Link to="/">
-          <h1 className="text-xl font-black text-primary font-headline tracking-tighter group-hover:scale-105 transition-transform">Midnight Curator</h1>
-          <p className="text-[10px] tracking-widest uppercase text-on-surface-variant font-headline opacity-70 group-hover:opacity-100">Edición Editorial</p>
+        <img src="/public/logo.png" alt="Logo midnight cruise"></img>
+          <h1 className="text-xl font-black text-primary font-headline tracking-tighter group-hover:scale-105 transition-transform">Midnight Cruiser</h1>
         </Link>
       </div>
       
