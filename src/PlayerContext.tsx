@@ -1,205 +1,216 @@
-import React, { createContext, useContext, useState, useRef, useEffect } from 'react';
+/**
+ * src/PlayerContext.tsx
+ * – Dynamic queue (queue takes priority over static TRACKS)
+ * – prevTrack restarts song if > 3s played
+ * – Stats pushed to API when a track starts (if logged in)
+ * – likedTracks synced to API when logged in
+ */
+
+import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { Track, TRACKS } from './types';
 import { resolveYouTubeId } from './lib/searchServices';
+import { API_BASE } from './AuthContext';
 
+// ── Types ─────────────────────────────────────
 interface PlayerContextType {
-  currentTrack: Track;
-  isPlaying: boolean;
-  progress: number;
-  volume: number;
-  currentTime: number;
-  duration: number;
-  isShuffle: boolean;
-  isRepeat: boolean;
-  togglePlay: () => void;
-  nextTrack: () => void;
-  prevTrack: () => void;
-  seek: (time: number) => void;
-  setVolume: (volume: number) => void;
-  toggleShuffle: () => void;
-  toggleRepeat: () => void;
-  playTrack: (track: Track) => void;
-  likedTracks: Track[];
-  toggleLike: (track: Track) => void;
-  isLiked: (trackId: string) => boolean;
+  currentTrack:   Track;
+  isPlaying:      boolean;
+  progress:       number;
+  volume:         number;
+  currentTime:    number;
+  duration:       number;
+  isShuffle:      boolean;
+  isRepeat:       boolean;
+  queue:          Track[];
+  togglePlay:     () => void;
+  nextTrack:      () => void;
+  prevTrack:      () => void;
+  seek:           (time: number) => void;
+  setVolume:      (v: number) => void;
+  toggleShuffle:  () => void;
+  toggleRepeat:   () => void;
+  playTrack:      (track: Track) => void;
+  addToQueue:     (track: Track) => void;
+  removeFromQueue:(index: number) => void;
+  clearQueue:     () => void;
+  likedTracks:    Track[];
+  toggleLike:     (track: Track) => void;
+  isLiked:        (trackId: string) => boolean;
 }
 
 const PlayerContext = createContext<PlayerContextType | undefined>(undefined);
 
+// ── Provider ──────────────────────────────────
 export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const [currentTrack, setCurrentTrack] = useState<Track>(TRACKS[0]);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [volume, setVolume] = useState(0.7);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-  const [isShuffle, setIsShuffle] = useState(false);
-  const [isRepeat, setIsRepeat] = useState(false);
+  const [isPlaying,    setIsPlaying]    = useState(false);
+  const [volume,       setVolumeState]  = useState(0.7);
+  const [currentTime,  setCurrentTime]  = useState(0);
+  const [duration,     setDuration]     = useState(0);
+  const [isShuffle,    setIsShuffle]    = useState(false);
+  const [isRepeat,     setIsRepeat]     = useState(false);
+  const [queue,        setQueue]        = useState<Track[]>([]);
+
   const [likedTracks, setLikedTracks] = useState<Track[]>(() => {
-    const saved = localStorage.getItem('midnight-curator-liked');
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem('midnight-curator-liked');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
   });
-  
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const audioRef    = useRef<HTMLAudioElement | null>(null);
   const ytPlayerRef = useRef<any>(null);
   const [isYtReady, setIsYtReady] = useState(false);
 
-  // Initialize YouTube IFrame API
+  // ── YouTube API init ──────────────────────
   useEffect(() => {
     const tag = document.createElement('script');
-    tag.src = "https://www.youtube.com/iframe_api";
-    const firstScriptTag = document.getElementsByTagName('script')[0];
-    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    tag.src   = 'https://www.youtube.com/iframe_api';
+    document.getElementsByTagName('script')[0].parentNode?.insertBefore(
+      tag, document.getElementsByTagName('script')[0]
+    );
 
     (window as any).onYouTubeIframeAPIReady = () => {
       ytPlayerRef.current = new (window as any).YT.Player('youtube-player-hidden', {
-        height: '0',
-        width: '0',
-        videoId: '',
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-        },
+        height: '0', width: '0', videoId: '',
+        playerVars: { autoplay: 0, controls: 0 },
         events: {
           onReady: () => setIsYtReady(true),
-          onStateChange: (event: any) => {
-            // YT.PlayerState.ENDED = 0
-            if (event.data === 0) {
-              if (isRepeat) {
-                ytPlayerRef.current.playVideo();
-              } else {
-                nextTrack();
-              }
+          onStateChange: (e: any) => {
+            if (e.data === 0) {
+              if (isRepeat) ytPlayerRef.current.playVideo();
+              else          nextTrack();
             }
-          }
-        }
+          },
+        },
       });
     };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // ── Polling timer ─────────────────────────
   useEffect(() => {
-    const updateTime = () => {
+    const id = setInterval(() => {
       if (currentTrack.isYouTube && ytPlayerRef.current?.getCurrentTime) {
-        setCurrentTime(ytPlayerRef.current.getCurrentTime());
-        setDuration(ytPlayerRef.current.getDuration());
+        setCurrentTime(ytPlayerRef.current.getCurrentTime() || 0);
+        setDuration(ytPlayerRef.current.getDuration()       || 0);
       } else if (audioRef.current) {
-        setCurrentTime(audioRef.current.currentTime);
-        setDuration(audioRef.current.duration);
+        setCurrentTime(audioRef.current.currentTime          || 0);
+        setDuration(isFinite(audioRef.current.duration)
+          ? audioRef.current.duration : 0);
       }
-    };
+    }, 500);
+    return () => clearInterval(id);
+  }, [currentTrack]);
 
-    const interval = setInterval(updateTime, 1000);
-    return () => clearInterval(interval);
-  }, [currentTrack, isPlaying]);
-
+  // ── Load / switch track ───────────────────
   useEffect(() => {
     const loadTrack = async () => {
       if (currentTrack.isYouTube) {
-        // Stop audio player
-        if (audioRef.current) {
-          audioRef.current.pause();
-          audioRef.current.src = "";
-        }
-        
+        if (audioRef.current) { audioRef.current.pause(); audioRef.current.src = ''; }
         if (ytPlayerRef.current) {
           if (currentTrack.isSearchMode) {
-            console.log(`Starting playback via YouTube Search mode: ${currentTrack.id}`);
-            // Use loadPlaylist with listType:'search' to find the best match dynamically
-            ytPlayerRef.current.loadPlaylist({
-              listType: 'search',
-              list: currentTrack.id, // In search mode, ID is the query
-              index: 0
-            });
+            ytPlayerRef.current.loadPlaylist({ listType: 'search', list: currentTrack.id, index: 0 });
           } else if (ytPlayerRef.current.loadVideoById) {
             ytPlayerRef.current.loadVideoById(currentTrack.id);
           }
-          
-          if (isPlaying) ytPlayerRef.current.playVideo();
-          else ytPlayerRef.current.pauseVideo();
           ytPlayerRef.current.setVolume(volume * 100);
+          if (isPlaying) ytPlayerRef.current.playVideo();
+          else           ytPlayerRef.current.pauseVideo();
         }
       } else {
-        // Stop YT player
-        if (ytPlayerRef.current?.pauseVideo) {
-          ytPlayerRef.current.pauseVideo();
-        }
+        if (ytPlayerRef.current?.pauseVideo) ytPlayerRef.current.pauseVideo();
 
         if (!audioRef.current) {
           audioRef.current = new Audio(currentTrack.audioUrl);
         } else {
           audioRef.current.src = currentTrack.audioUrl;
         }
-        
+
         const audio = audioRef.current;
         audio.volume = volume;
 
-        const handleEnded = () => {
-          if (isRepeat) {
-            audio.currentTime = 0;
-            audio.play();
-          } else {
-            nextTrack();
-          }
+        const onEnded = () => {
+          if (isRepeat) { audio.currentTime = 0; audio.play(); }
+          else          nextTrack();
         };
-
-        audio.addEventListener('ended', handleEnded);
-
-        if (isPlaying) {
-          audio.play().catch(console.error);
-        }
-
-        return () => {
-          audio.removeEventListener('ended', handleEnded);
-        };
+        audio.addEventListener('ended', onEnded);
+        if (isPlaying) audio.play().catch(console.error);
+        return () => audio.removeEventListener('ended', onEnded);
       }
     };
-
     loadTrack();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentTrack]);
 
+  // ── Play / pause sync ─────────────────────
   useEffect(() => {
-    if (currentTrack.isYouTube) {
-      if (ytPlayerRef.current?.playVideo) {
-        if (isPlaying) ytPlayerRef.current.playVideo();
-        else ytPlayerRef.current.pauseVideo();
-      }
+    if (currentTrack.isYouTube && ytPlayerRef.current?.playVideo) {
+      if (isPlaying) ytPlayerRef.current.playVideo();
+      else           ytPlayerRef.current.pauseVideo();
     } else if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.play().catch(console.error);
-      } else {
-        audioRef.current.pause();
-      }
+      if (isPlaying) audioRef.current.play().catch(console.error);
+      else           audioRef.current.pause();
     }
   }, [isPlaying]);
 
+  // ── Volume sync ───────────────────────────
   useEffect(() => {
-    const v = volume * 100;
     if (currentTrack.isYouTube && ytPlayerRef.current?.setVolume) {
-      ytPlayerRef.current.setVolume(v);
+      ytPlayerRef.current.setVolume(volume * 100);
     } else if (audioRef.current) {
       audioRef.current.volume = volume;
     }
   }, [volume]);
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
+  // ── Track stat recording ──────────────────
+  useEffect(() => {
+    if (currentTrack.isRadio) return;
+    const token = localStorage.getItem('mc_token');
+    if (!token) return;
+    fetch(`${API_BASE}/api/stats/play`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+      body:    JSON.stringify({
+        trackId:   currentTrack.id,
+        title:     currentTrack.title,
+        artist:    currentTrack.artist,
+        album:     currentTrack.album,
+        coverUrl:  currentTrack.cover,
+        isYouTube: currentTrack.isYouTube ?? false,
+      }),
+    }).catch(() => {/* silently ignore if API offline */});
+  }, [currentTrack.id]);
 
-  const nextTrack = () => {
-    const currentIndex = TRACKS.findIndex(t => t.id === currentTrack.id);
-    let nextIndex;
-    if (isShuffle) {
-      nextIndex = Math.floor(Math.random() * TRACKS.length);
-    } else {
-      nextIndex = (currentIndex + 1) % TRACKS.length;
+  // ── Controls ──────────────────────────────
+  const togglePlay    = () => setIsPlaying(p => !p);
+  const toggleShuffle = () => setIsShuffle(p => !p);
+  const toggleRepeat  = () => setIsRepeat(p => !p);
+
+  // Forward – consume queue first, then fall back to TRACKS array
+  const nextTrack = useCallback(() => {
+    if (queue.length > 0) {
+      const [next, ...rest] = queue;
+      setQueue(rest);
+      playTrackInternal(next);
+      return;
     }
-    const track = TRACKS[nextIndex];
-    if (track) playTrack(track);
-  };
+    const idx = TRACKS.findIndex(t => t.id === currentTrack.id);
+    const nextIdx = isShuffle
+      ? Math.floor(Math.random() * TRACKS.length)
+      : (idx + 1) % TRACKS.length;
+    playTrackInternal(TRACKS[nextIdx]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queue, currentTrack, isShuffle]);
 
-  const prevTrack = () => {
-    const currentIndex = TRACKS.findIndex(t => t.id === currentTrack.id);
-    const prevIndex = (currentIndex - 1 + TRACKS.length) % TRACKS.length;
-    const track = TRACKS[prevIndex];
-    if (track) playTrack(track);
-  };
+  // Backward – restart if > 3 s elapsed, else go to previous
+  const prevTrack = useCallback(() => {
+    if (currentTime > 3) { seek(0); return; }
+    const idx     = TRACKS.findIndex(t => t.id === currentTrack.id);
+    const prevIdx = (idx - 1 + TRACKS.length) % TRACKS.length;
+    playTrackInternal(TRACKS[prevIdx]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentTime, currentTrack]);
 
   const seek = (time: number) => {
     if (currentTrack.isYouTube && ytPlayerRef.current?.seekTo) {
@@ -210,81 +221,89 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setCurrentTime(time);
   };
 
-  const toggleShuffle = () => setIsShuffle(!isShuffle);
-  const toggleRepeat = () => setIsRepeat(!isRepeat);
+  const setVolume = (v: number) => setVolumeState(Math.max(0, Math.min(1, v)));
 
-  const playTrack = async (track: Track) => {
-  // 1. Si es RADIO: Asignar y reproducir de una vez (ya tiene audioUrl directo)
-  if (track.isRadio) {
+  // ── Queue management ─────────────────────
+  const addToQueue      = (t: Track) => setQueue(prev => [...prev, t]);
+  const removeFromQueue = (i: number) => setQueue(prev => prev.filter((_, idx) => idx !== i));
+  const clearQueue      = () => setQueue([]);
+
+  // ── Internal play helper ─────────────────
+  async function playTrackInternal(track: Track) {
+    setCurrentTime(0);
+    setDuration(0);
+
+    if (track.isRadio) {
+      setCurrentTrack(track);
+      setIsPlaying(true);
+      return;
+    }
+
     setCurrentTrack(track);
     setIsPlaying(true);
-    return; // Detenemos aquí solo para radios
-  }
 
-  // 2. Si es una canción normal o búsqueda:
-  // Primero la ponemos como "actual" para que el UI cambie rápido
-  setCurrentTrack(track);
-  setIsPlaying(true);
-
-  // Si no tiene un ID de YouTube pero es modo búsqueda, lo resolvemos
-  if (!track.isYouTube && track.isSearchMode) {
-    try {
-      console.log(`Resolviendo audio para: ${track.artist} - ${track.title}`);
-      const youtubeId = await resolveYouTubeId(track.artist, track.title);
-      
-      if (youtubeId) {
-        // Actualizamos el track actual con el ID de YouTube encontrado
-        setCurrentTrack(prev => ({
-          ...prev,
-          id: youtubeId,
-          isYouTube: true
-        }));
+    // Resolve YouTube ID if needed
+    if (!track.isYouTube && track.isSearchMode) {
+      try {
+        const ytId = await resolveYouTubeId(track.artist, track.title);
+        if (ytId) {
+          setCurrentTrack(prev => ({ ...prev, id: ytId, isYouTube: true, isSearchMode: false }));
+        }
+      } catch (e) {
+        console.error('Could not resolve YouTube ID', e);
       }
-    } catch (error) {
-      console.error("Error al resolver YouTube ID:", error);
     }
   }
-};
 
+  const playTrack = (track: Track) => playTrackInternal(track);
+
+  // ── Likes (local + API) ──────────────────
   const toggleLike = (track: Track) => {
+    const token = localStorage.getItem('mc_token');
+
     setLikedTracks(prev => {
-      const isAlreadyLiked = prev.some(t => t.id === track.id);
-      let next;
-      if (isAlreadyLiked) {
-        next = prev.filter(t => t.id !== track.id);
-      } else {
-        next = [...prev, track];
-      }
+      const liked = prev.some(t => t.id === track.id);
+      const next  = liked ? prev.filter(t => t.id !== track.id) : [...prev, track];
       localStorage.setItem('midnight-curator-liked', JSON.stringify(next));
+
+      if (token) {
+        if (liked) {
+          fetch(`${API_BASE}/api/likes/${encodeURIComponent(track.id)}`, {
+            method:  'DELETE',
+            headers: { Authorization: `Bearer ${token}` },
+          }).catch(() => {});
+        } else {
+          fetch(`${API_BASE}/api/likes`, {
+            method:  'POST',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body:    JSON.stringify({
+              id:        track.id,
+              title:     track.title,
+              artist:    track.artist,
+              album:     track.album,
+              cover:     track.cover,
+              audioUrl:  track.audioUrl,
+              isYouTube: track.isYouTube ?? false,
+              duration:  track.duration ?? 0,
+            }),
+          }).catch(() => {});
+        }
+      }
       return next;
     });
   };
 
   const isLiked = (trackId: string) => likedTracks.some(t => t.id === trackId);
-
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
   return (
     <PlayerContext.Provider value={{
-      currentTrack,
-      isPlaying,
-      progress,
-      volume,
-      currentTime,
-      duration,
-      isShuffle,
-      isRepeat,
-      togglePlay,
-      nextTrack,
-      prevTrack,
-      seek,
-      setVolume,
-      toggleShuffle,
-      toggleRepeat,
-      playTrack,
-      likedTracks,
-      toggleLike,
-      isLiked
+      currentTrack, isPlaying, progress, volume, currentTime, duration,
+      isShuffle, isRepeat, queue,
+      togglePlay, nextTrack, prevTrack, seek, setVolume,
+      toggleShuffle, toggleRepeat,
+      playTrack, addToQueue, removeFromQueue, clearQueue,
+      likedTracks, toggleLike, isLiked,
     }}>
       {children}
       <div id="youtube-player-hidden" style={{ display: 'none' }} />
@@ -292,10 +311,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
+// ── Hook ──────────────────────────────────────
 export function usePlayer() {
-  const context = useContext(PlayerContext);
-  if (context === undefined) {
-    throw new Error('usePlayer must be used within a PlayerProvider');
-  }
-  return context;
+  const ctx = useContext(PlayerContext);
+  if (!ctx) throw new Error('usePlayer must be used within PlayerProvider');
+  return ctx;
 }
