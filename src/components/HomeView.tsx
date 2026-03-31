@@ -42,6 +42,16 @@ export function HomeView() {
   }
 
   const heroTrack = recommendations[0] || TRACKS[0];
+   // 1. ADD THIS EARLY RETURN TO PREVENT THE CRASH
+  if (!heroTrack) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <Music2 className="w-12 h-12 text-secondary opacity-50" />
+        <p className="text-secondary font-headline uppercase tracking-widest text-xs">No se encontraron recomendaciones en este momento.</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-16 pb-12 animate-in fade-in duration-700">

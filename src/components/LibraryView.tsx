@@ -108,72 +108,8 @@ export function LibraryView() {
             </div>
           )}
 
-          {/* Real Playlists / Midnight Mix */}
-          <div className="space-y-8 pt-8">
-            <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold font-headline flex items-center gap-3">
-                <Sparkles className="w-6 h-6 text-primary" />
-                Mixes sugeridos para ti
-              </h2>
-            </div>
-            {loading ? (
-              <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
-                {[1, 2, 3, 4].map(i => (
-                  <div key={i} className="flex-shrink-0 w-48 animate-pulse">
-                    <div className="aspect-square bg-surface-high rounded-2xl mb-4" />
-                    <div className="h-4 bg-surface-high rounded w-3/4 mb-2" />
-                    <div className="h-3 bg-surface-high rounded w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
-                {recommended.map((track) => (
-                  <motion.div 
-                    key={track.id} 
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => playTrack(track)}
-                    className="flex-shrink-0 w-48 group cursor-pointer"
-                  >
-                    <div className="aspect-square rounded-2xl overflow-hidden mb-4 shadow-xl relative">
-                      <img 
-                        src={track.cover} 
-                        alt={track.title} 
-                        className="w-full h-full object-cover"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                        <Play className="w-10 h-10 text-white fill-current" />
-                      </div>
-                    </div>
-                    <p className="font-bold text-sm truncate">{track.title}</p>
-                    <p className="text-xs text-on-surface-variant truncate">{track.artist}</p>
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Sidebar info */}
-        <div className="lg:col-span-4 space-y-12">
-           <div className="bg-surface-low/50 rounded-[2.5rem] p-8 border border-white/5">
-            <h2 className="text-xl font-bold font-headline mb-8 flex items-center gap-2">
-              <Disc className="w-5 h-5 text-primary" />
-              Suscripción
-            </h2>
-            <div className="p-6 bg-primary/10 rounded-3xl border border-primary/20 mb-6">
-              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Plan Midnight Premium</p>
-              <h3 className="text-lg font-black mb-4">Escucha sin límites</h3>
-              <p className="text-xs text-on-surface-variant leading-relaxed mb-6">
-                Accede a la máxima calidad de audio y descarga tus mixes favoritos para la noche profunda.
-              </p>
-              <button className="w-full py-3 bg-primary text-background font-black text-[10px] uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
-                Gestionar Plan
-              </button>
-            </div>
-          </div>
-        </div>
       </div>
     </div>
   );
