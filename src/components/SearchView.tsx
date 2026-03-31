@@ -31,7 +31,7 @@ export function SearchView({ query }: SearchViewProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
         <Loader2 className="w-10 h-10 text-primary animate-spin" />
-        <p className="text-secondary font-headline uppercase tracking-widest text-xs">Curando resultados para "{query}"...</p>
+        <p className="text-secondary font-headline uppercase tracking-widest text-xs">Buscando resultados para "{query}"...</p>
       </div>
     );
   }

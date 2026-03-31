@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useEffect, useState} from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
 import { Zap } from 'lucide-react';
@@ -17,6 +17,7 @@ import { LibraryView } from './components/LibraryView';
 import { NowPlayingView } from './components/NowPlayingView';
 import { SearchView } from './components/SearchView';
 import { Track } from './types';
+import { usePlayer } from './PlayerContext';
 
 function SettingsView() {
   return (
@@ -82,15 +83,82 @@ function ProfileView() {
   );
 }
 
+
 function RadioView() {
+  const [stations, setStations] = useState([]);
+  const { playTrack } = usePlayer(); // 🔥 usamos el player global
+
+  useEffect(() => {
+    fetch("https://de1.api.radio-browser.info/json/stations/bycountry/dominican%20republic")
+      .then(res => res.json())
+      .then(data => {
+        const filtered = data
+          .filter(s => s.url_resolved && s.name)
+          .slice(0, 24);
+        setStations(filtered);
+      });
+  }, []);
+
+// Dentro de App.tsx -> RadioView
+ const playStation = (station: any) => {
+  const radioTrack: Track = {
+    id: station.stationuuid,
+    title: station.name,
+    artist: "Radio En Vivo",
+    album: station.tags?.split(',')[0] || "Internet Radio",
+    cover: station.favicon || "https://images.unsplash.com/photo-1590602847861-f357a9332bbc",
+    audioUrl: station.url_resolved,
+    isRadio: true, // Esto activa la reproducción directa
+    isYouTube: false, // Esto evita que intente buscar en YouTube
+    duration: 0
+  };
+
+  playTrack(radioTrack);
+};
+
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] text-center space-y-6">
-      <div className="w-24 h-24 bg-primary/20 rounded-full flex items-center justify-center animate-pulse">
-        <Zap className="w-12 h-12 text-primary" />
+    <div className="space-y-8">
+      {/* Header */}
+      <div className="flex items-center gap-4">
+        <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
+          <Zap className="w-8 h-8 text-primary" />
+        </div>
+        <div>
+          <h2 className="text-3xl font-headline font-black uppercase tracking-tighter">
+            Radio Dominicana
+          </h2>
+          <p className="text-secondary text-sm">
+            Estaciones en vivo 🇩🇴
+          </p>
+        </div>
       </div>
-      <h2 className="text-4xl font-headline font-black uppercase tracking-tighter">Estación de Radio</h2>
-      <p className="text-secondary max-w-md">Transmitiendo las mejores curadurías de medianoche. Conéctate con el flujo musical en vivo.</p>
-      <button className="px-8 py-3 bg-primary text-background font-bold rounded-full uppercase tracking-widest text-xs hover:scale-105 transition-transform">Conectar ahora</button>
+
+      {/* Stations */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {stations.map((station) => (
+          <button
+            key={station.stationuuid}
+            onClick={() => playStation(station)}
+            className="group p-4 bg-surface-high/40 rounded-2xl hover:bg-surface-high transition-all hover:scale-105 text-center"
+          >
+            {station.favicon ? (
+              <img
+                src={station.favicon}
+                alt={station.name}
+                className="w-12 h-12 mx-auto mb-2 object-contain"
+              />
+            ) : (
+              <div className="w-12 h-12 mx-auto mb-2 bg-primary/20 rounded-full flex items-center justify-center">
+                <Zap className="w-5 h-5 text-primary" />
+              </div>
+            )}
+
+            <p className="text-xs font-bold line-clamp-2 group-hover:text-primary transition-colors">
+              {station.name}
+            </p>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

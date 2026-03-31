@@ -214,51 +214,37 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
   const toggleRepeat = () => setIsRepeat(!isRepeat);
 
   const playTrack = async (track: Track) => {
-    // If it's already a YouTube track, just play it
-    if (track.isYouTube) {
-      setCurrentTrack(track);
-      setIsPlaying(true);
-      return;
-    }
+  // 1. Si es RADIO: Asignar y reproducir de una vez (ya tiene audioUrl directo)
+  if (track.isRadio) {
+    setCurrentTrack(track);
+    setIsPlaying(true);
+    return; // Detenemos aquí solo para radios
+  }
 
-    // If it's an iTunes track, we'll try to find the full version on YouTube!
+  // 2. Si es una canción normal o búsqueda:
+  // Primero la ponemos como "actual" para que el UI cambie rápido
+  setCurrentTrack(track);
+  setIsPlaying(true);
+
+  // Si no tiene un ID de YouTube pero es modo búsqueda, lo resolvemos
+  if (!track.isYouTube && track.isSearchMode) {
     try {
-      console.log(`Resolving full audio for: ${track.artist} - ${track.title}`);
-      const ytId = await resolveYouTubeId(track.artist, track.title);
+      console.log(`Resolviendo audio para: ${track.artist} - ${track.title}`);
+      const youtubeId = await resolveYouTubeId(track.artist, track.title);
       
-      if (ytId) {
-        const fullTrack: Track = {
-          ...track,
-          id: ytId,
-          isYouTube: true,
-          isSearchMode: false,
-        };
-        setCurrentTrack(fullTrack);
-        setIsPlaying(true);
-      } else {
-        console.warn('Resolution failed, forcing YouTube Search mode as fallback.');
-        // THE ULTIMATE FALLBACK: Let the YouTube IFrame find the song!
-        const searchTrack: Track = {
-          ...track,
-          id: `${track.artist} ${track.title}`, // Search query as ID
-          isYouTube: true,
-          isSearchMode: true,
-        };
-        setCurrentTrack(searchTrack);
-        setIsPlaying(true);
+      if (youtubeId) {
+        // Actualizamos el track actual con el ID de YouTube encontrado
+        setCurrentTrack(prev => ({
+          ...prev,
+          id: youtubeId,
+          isYouTube: true
+        }));
       }
     } catch (error) {
-      console.warn('Resolution error, forcing YouTube Search mode as fallback.', error);
-      const searchTrack: Track = {
-        ...track,
-        id: `${track.artist} ${track.title}`,
-        isYouTube: true,
-        isSearchMode: true,
-      };
-      setCurrentTrack(searchTrack);
-      setIsPlaying(true);
+      console.error("Error al resolver YouTube ID:", error);
     }
-  };
+  }
+};
 
   const toggleLike = (track: Track) => {
     setLikedTracks(prev => {

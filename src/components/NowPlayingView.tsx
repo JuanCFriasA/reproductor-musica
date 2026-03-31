@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayer } from '../PlayerContext';
-import { ChevronDown, Heart, ListPlus, Share2, Music2, Loader2, ExternalLink } from 'lucide-react';
+// Añadimos Radio a los iconos
+import { ChevronDown, Heart, ListPlus, Share2, Music2, Loader2, ExternalLink, Radio } from 'lucide-react';
 import { getLyrics } from '../lib/searchServices';
 import { cn } from '../lib/utils';
 
@@ -15,6 +16,12 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
   const [loadingLyrics, setLoadingLyrics] = React.useState(false);
 
   React.useEffect(() => {
+    // Si es radio, no buscamos letras
+    if (currentTrack.isRadio) {
+      setLyrics(null);
+      return;
+    }
+
     const fetchLyrics = async () => {
       setLoadingLyrics(true);
       const res = await getLyrics(currentTrack.artist, currentTrack.title);
@@ -22,7 +29,7 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
       setLoadingLyrics(false);
     };
     fetchLyrics();
-  }, [currentTrack.id]);
+  }, [currentTrack.id, currentTrack.isRadio]);
 
   return (
     <motion.div 
@@ -58,7 +65,6 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
             referrerPolicy="no-referrer"
           />
           
-          {/* Audio Spectrum Visualizer (Mock) */}
           <div className="absolute bottom-8 left-8 right-8 z-20 flex items-end gap-1.5 h-16 pointer-events-none">
             {[...Array(20)].map((_, i) => (
               <motion.div 
@@ -75,7 +81,24 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
       {/* Right Column: Info & Lyrics */}
       <div className="w-full md:w-1/2 h-[50vh] md:h-full flex flex-col justify-center p-8 md:p-16 space-y-12 overflow-y-auto">
         <div className="space-y-4">
-          <span className="font-headline text-xs uppercase tracking-[0.3em] text-primary font-bold">Reproduciendo ahora</span>
+          <div className="flex items-center gap-3">
+            <span className="font-headline text-xs uppercase tracking-[0.3em] text-primary font-bold">
+              {currentTrack.isRadio ? 'Escuchando' : 'Reproduciendo ahora'}
+            </span>
+            
+            {/* INDICADOR EN VIVO */}
+            {currentTrack.isRadio && (
+              <motion.span 
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-center gap-1.5 px-3 py-1 bg-red-500/20 border border-red-500/50 rounded-full"
+              >
+                <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-tighter text-red-500">En Vivo</span>
+              </motion.span>
+            )}
+          </div>
+
           <h1 className="font-headline text-5xl md:text-7xl font-extrabold italic tracking-tighter text-on-surface leading-none">
             {currentTrack.title}
           </h1>
@@ -86,9 +109,24 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
           </div>
         </div>
 
-        {/* Lyrics */}
+        {/* Lyrics / Radio Placeholder */}
         <div className="bg-surface-low/40 rounded-[2.5rem] p-10 h-96 overflow-y-auto no-scrollbar border border-white/5 backdrop-blur-md">
-          {loadingLyrics ? (
+          {currentTrack.isRadio ? (
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-6">
+              <div className="relative">
+                <Radio className="w-16 h-16 text-primary animate-pulse" />
+                <motion.div 
+                  animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                  className="absolute inset-0 bg-primary/20 rounded-full blur-xl" 
+                />
+              </div>
+              <div className="space-y-2">
+                <p className="text-xl font-headline font-bold text-on-surface">Transmisión Digital Directa</p>
+                <p className="text-sm text-on-surface-variant max-w-xs">Estás conectado a la señal en vivo. Las letras no están disponibles para transmisiones de radio.</p>
+              </div>
+            </div>
+          ) : loadingLyrics ? (
             <div className="h-full flex flex-col items-center justify-center space-y-4 animate-pulse">
               <Loader2 className="w-10 h-10 text-primary animate-spin" />
               <p className="text-secondary font-headline uppercase tracking-widest text-[10px]">Buscando versos en la red...</p>
@@ -103,17 +141,11 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
                   {line}
                 </p>
               ))}
-              <div className="pt-8 text-center">
-                <p className="text-[10px] text-secondary font-bold uppercase tracking-widest opacity-60">Datos curados por Genius & Lyrics.ovh</p>
-              </div>
             </div>
           ) : (
-             <div className="h-full flex flex-col items-center justify-center text-on-surface-variant opacity-40 space-y-4">
+            <div className="h-full flex flex-col items-center justify-center text-on-surface-variant opacity-40 space-y-4">
               <Music2 className="w-12 h-12" />
               <p className="text-sm font-bold uppercase tracking-widest">No hay letras disponibles</p>
-              <button className="flex items-center gap-2 text-[10px] text-primary hover:underline">
-                Buscar en Genius <ExternalLink className="w-3 h-3" />
-              </button>
             </div>
           )}
         </div>
@@ -134,10 +166,12 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
           <div className="flex items-center gap-3">
             <div className="flex gap-0.5">
               {[...Array(3)].map((_, i) => (
-                <div key={i} className="w-1 h-3 bg-primary rounded-full animate-pulse" />
+                <div key={i} className={cn("w-1 h-3 rounded-full animate-pulse", currentTrack.isRadio ? "bg-red-500" : "bg-primary")} />
               ))}
             </div>
-            <span className="font-headline text-xs uppercase tracking-widest text-primary font-bold">Audio HD</span>
+            <span className={cn("font-headline text-xs uppercase tracking-widest font-bold", currentTrack.isRadio ? "text-red-500" : "text-primary")}>
+              {currentTrack.isRadio ? 'Live Stream' : 'Audio HD'}
+            </span>
           </div>
         </div>
       </div>

@@ -4,6 +4,8 @@ import { Home, Library, LayoutGrid, Zap, Search, Bell, Settings, Check, Clock } 
 import { cn } from '../lib/utils';
 
 export function Sidebar() {
+  const [hovered, setHovered] = useState(false);
+
   const navItems = [
     { id: 'home', name: 'Inicio', path: '/', icon: Home },
     { id: 'library', name: 'Biblioteca', path: '/library', icon: Library },
@@ -11,41 +13,60 @@ export function Sidebar() {
   ];
 
   return (
-    <aside className="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface-low border-r-4 border-primary shadow-2xl flex-col pt-8 pb-28 z-40">
-      <div className="px-6 mb-8 group cursor-pointer">
-        <Link to="/">
-        <img src="/public/logo.png" alt="Logo midnight cruise"></img>
-          <h1 className="text-xl font-black text-primary font-headline tracking-tighter group-hover:scale-105 transition-transform">Midnight Cruiser</h1>
-        </Link>
-      </div>
-      
+    <aside
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={cn(
+        "hidden md:flex h-screen fixed left-0 top-0 bg-surface-low border-r-4 border-primary shadow-2xl flex-col pt-8 pb-28 z-40 transition-all duration-300",
+        hovered ? "w-64" : "w-20"
+      )}
+    >
+      {/* Logo */}
+<div className="mb-8 group cursor-pointer flex items-center justify-center">
+  <Link to="/" className={cn(
+    "flex items-center transition-all duration-300",
+    hovered ? "gap-3 px-6 justify-start w-full" : "justify-center w-full"
+  )}>
+    
+    <img 
+      src="/public/logo.png" 
+      alt="Logo midnight cruise" 
+      className={cn(
+        "transition-all duration-300 object-contain",
+        hovered ? "w-10 h-10" : "w-12 h-12"
+      )}
+    />
+
+    {hovered && (
+      <h1 className="text-xl font-black text-primary font-headline tracking-tighter whitespace-nowrap">
+        Midnight Cruise
+      </h1>
+    )}
+  </Link>
+</div>
+
+      {/* Nav */}
       <nav className="flex-grow space-y-1">
         {navItems.map((item) => (
           <NavLink
             key={item.id}
             to={item.path}
+            title={!hovered ? item.name : ""}
             className={({ isActive }) => cn(
-              "w-full flex items-center gap-4 px-6 py-4 transition-all duration-300 font-headline uppercase tracking-widest text-xs text-left",
-              isActive 
-                ? "text-primary border-l-4 border-primary bg-surface-high" 
+              "w-full flex items-center gap-4 py-4 transition-all duration-300 font-headline uppercase tracking-widest text-xs",
+              hovered ? "px-6 justify-start" : "justify-center px-0",
+              isActive
+                ? "text-primary border-l-4 border-primary bg-surface-high"
                 : "text-secondary hover:bg-surface-high/50 hover:text-primary"
             )}
           >
-            <item.icon className="w-5 h-5" />
-            {item.name}
+            <item.icon className="w-5 h-5 flex-shrink-0" />
+            {hovered && item.name}
           </NavLink>
         ))}
       </nav>
 
-      <div className="px-6 mt-auto">
-        <div className="bg-primary/10 p-4 rounded-2xl mb-6">
-          <h4 className="text-primary font-bold text-sm mb-1">Audio Premium</h4>
-          <p className="text-[10px] text-on-surface-variant mb-4">Escucha sin límites y en alta fidelidad.</p>
-          <button className="w-full bg-primary text-background font-bold py-2 rounded-full text-[10px] uppercase tracking-widest hover:scale-95 transition-transform">
-            Actualizar a Premium
-          </button>
-        </div>
-      </div>
+
     </aside>
   );
 }

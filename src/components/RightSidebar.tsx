@@ -9,9 +9,7 @@ export function RightSidebar() {
   const { playTrack, currentTrack } = usePlayer();
 
   const activity = [
-    { user: 'Elena M.', action: 'Escuchando', track: TRACKS[1], time: 'Ahora' },
-    { user: 'Marco Ross', action: 'Reprodujo', track: TRACKS[2], time: 'Hace 5m' },
-    { user: 'Sara K.', action: 'Añadió a favoritos', track: TRACKS[3], time: 'Hace 12m' },
+   
   ];
 
   return (

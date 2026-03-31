@@ -4,13 +4,13 @@ export interface Track {
   artist: string;
   album: string;
   cover: string;
-  duration: number; // in seconds
+  duration?: number; // <-- Cambiado a opcional (?)
   audioUrl: string;
   lyrics?: string[];
   isYouTube?: boolean;
   isSearchMode?: boolean;
+  isRadio?: boolean; // <-- Nueva propiedad
 }
-
 export interface Genre {
   id: string;
   name: string;
