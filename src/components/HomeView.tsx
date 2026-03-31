@@ -88,7 +88,7 @@ export function HomeView() {
           <div>
             <h3 className="text-2xl font-bold font-headline flex items-center gap-2">
               <div className="w-1 h-8 bg-primary rounded-full" />
-              Recomendaciones del Editor
+              Recomendaciones para ti
             </h3>
             <p className="text-sm text-on-surface-variant">Vibras curadas directamente de YouTube</p>
           </div>
@@ -172,38 +172,7 @@ export function HomeView() {
           </div>
         </div>
 
-        <div className="bg-surface-low/30 p-8 rounded-[2.5rem] border border-white/5 shadow-inner">
-          <h3 className="text-2xl font-bold font-headline mb-8 flex items-center gap-2">
-            <Music2 className="w-6 h-6 text-primary" />
-            Top Latinoamérica
-          </h3>
-          <div className="space-y-6">
-            {(topLatin.length > 0 ? topLatin : TRACKS).slice(0, 8).map((track, i) => (
-              <div 
-                key={track.id + i} 
-                className="flex items-center gap-4 group cursor-pointer"
-                onClick={() => playTrack(track)}
-              >
-                <span className={cn(
-                  "text-2xl font-black w-8 transition-colors",
-                  i === 0 ? "text-primary italic" : "text-secondary/20 group-hover:text-primary/40"
-                )}>
-                  {(i + 1).toString().padStart(2, '0')}
-                </span>
-                <div className="flex-1 min-w-0">
-                  <h6 className="font-bold truncate text-sm group-hover:text-primary transition-colors">{track.title}</h6>
-                  <p className="text-[10px] text-on-surface-variant font-bold uppercase tracking-widest opacity-60">{track.artist}</p>
-                </div>
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                   <Play className="w-3 h-3 text-primary fill-primary" />
-                </div>
-              </div>
-            ))}
-          </div>
-          <button className="w-full mt-10 py-4 bg-surface-high border border-white/5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] hover:bg-primary hover:text-background transition-all shadow-xl">
-            Ver Ranking Completo
-          </button>
-        </div>
+
       </div>
     </div>
   );

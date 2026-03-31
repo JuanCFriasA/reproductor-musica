@@ -1,4 +1,4 @@
-/**
+/**false
  * src/components/Navigation.tsx
  * TopNav now accepts:
  *   onLoginClick  – opens auth modal
@@ -28,7 +28,7 @@ export function Sidebar() {
 
   return (
     <aside
-      onMouseEnter={() => setHovered(true)}
+      onMouseEnter={() => setHovered(false)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
         'hidden md:flex h-screen fixed left-0 top-0 bg-surface-low border-r-4 border-primary shadow-2xl flex-col pt-8 pb-28 z-40 transition-all duration-300',
@@ -141,7 +141,7 @@ export function TopNav({ onSearch, onLoginClick, isLoggedIn, user, onLogout }: T
       <div className="flex items-center gap-6 ml-6" ref={dropdownRef}>
         {/* Genre / Radio links */}
         <nav className="hidden lg:flex items-center gap-6 mr-2">
-          {['Géneros', 'Radio'].map(label => (
+          {['Radio'].map(label => (
             <NavLink
               key={label}
               to={`/${label.toLowerCase()}`}

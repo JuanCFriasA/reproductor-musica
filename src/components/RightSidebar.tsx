@@ -26,17 +26,14 @@ export function RightSidebar() {
       <div className="px-6 pt-10 flex flex-col h-full overflow-hidden">
 
         {/* Header */}
-        <div className="flex justify-between items-center mb-8">
-          <h3 className="font-headline font-bold text-lg">Actividad</h3>
-          <Users className="w-5 h-5 text-secondary/40" />
-        </div>
+
 
         {/* Queue section */}
         <div className="flex flex-col flex-1 min-h-0">
           <div className="flex justify-between items-center mb-4 flex-shrink-0">
             <h3 className="font-headline font-bold text-base flex items-center gap-2">
               <ListMusic className="w-4 h-4 text-primary" />
-              Lo que sigue
+              Lista de reproduccion
             </h3>
             {isRealQueue && (
               <span className="text-[10px] uppercase tracking-widest text-primary font-bold bg-primary/10 px-2 py-0.5 rounded-full">
@@ -117,18 +114,6 @@ export function RightSidebar() {
         </div>
 
         {/* Podcast promo */}
-        <div className="mt-4 pt-4 border-t border-white/5 flex-shrink-0">
-          <div className="bg-gradient-to-br from-primary/20 to-secondary/10 p-5 rounded-3xl border border-white/10 relative overflow-hidden group cursor-pointer">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-primary/10 rounded-full blur-3xl -mr-12 -mt-12 group-hover:bg-primary/20 transition-colors" />
-            <h4 className="text-sm font-bold mb-1.5 relative z-10">Explora Podcasts</h4>
-            <p className="text-[10px] text-on-surface-variant mb-3 relative z-10 line-clamp-2">
-              Nuevas historias y debates sobre curaduría musical.
-            </p>
-            <button className="text-[10px] font-bold text-primary uppercase tracking-widest relative z-10 hover:underline">
-              Escuchar ahora
-            </button>
-          </div>
-        </div>
       </div>
     </aside>
   );
