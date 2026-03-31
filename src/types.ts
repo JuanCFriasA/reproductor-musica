@@ -7,6 +7,8 @@ export interface Track {
   duration: number; // in seconds
   audioUrl: string;
   lyrics?: string[];
+  isYouTube?: boolean;
+  isSearchMode?: boolean;
 }
 
 export interface Genre {

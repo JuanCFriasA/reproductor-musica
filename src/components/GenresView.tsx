@@ -7,7 +7,7 @@ const iconMap: Record<string, any> = {
   Zap, Wind, Moon, Dumbbell, CloudRain, Music: MusicIcon
 };
 
-export function GenresView() {
+export function GenresView({ onGenreClick }: { onGenreClick?: (query: string) => void }) {
   return (
     <div className="space-y-16">
       {/* Hero */}
@@ -27,6 +27,7 @@ export function GenresView() {
           <motion.div 
             key={genre.id}
             whileHover={{ scale: 1.02 }}
+            onClick={() => onGenreClick?.(genre.name)}
             className="relative group overflow-hidden rounded-2xl h-64 bg-surface-high cursor-pointer"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent z-10" />
@@ -60,18 +61,18 @@ export function GenresView() {
               Algoritmos humanos diseñando la banda sonora de tu productividad, tu descanso o tu caos interno. No es solo música, es una frecuencia emocional.
             </p>
             <div className="flex flex-wrap gap-4">
-              <button className="bg-primary text-background px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:scale-105 transition-transform">
+              <button 
+                onClick={() => onGenreClick?.("Night Vibes Relaxing Music")}
+                className="bg-primary text-background px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:scale-105 transition-transform"
+              >
                 Explorar Dimensiones
-              </button>
-              <button className="border border-secondary/30 text-on-surface px-8 py-3 rounded-full font-bold uppercase text-xs tracking-widest hover:bg-surface-high transition-colors">
-                Más Información
               </button>
             </div>
           </div>
           <div className="absolute top-0 right-0 h-full w-full md:w-1/2 hidden md:block">
             <div className="absolute inset-0 bg-gradient-to-r from-surface-low to-transparent z-10" />
             <img 
-              src="https://picsum.photos/seed/abstract/1200/800" 
+              src="https://images.unsplash.com/photo-1614149162883-504ce4d13909?q=80&w=1200&auto=format&fit=crop" 
               alt="Abstract" 
               className="h-full w-full object-cover opacity-40 group-hover:scale-110 transition-transform duration-1000"
               referrerPolicy="no-referrer"
@@ -84,7 +85,10 @@ export function GenresView() {
       <section>
         <div className="flex justify-between items-end mb-8">
           <h3 className="text-2xl font-bold font-headline tracking-tight">Estados de Ánimo</h3>
-          <button className="text-primary font-bold text-xs uppercase tracking-widest hover:underline flex items-center gap-1">
+          <button 
+            onClick={() => onGenreClick?.("Music for study and focus")}
+            className="text-primary font-bold text-xs uppercase tracking-widest hover:underline flex items-center gap-1"
+          >
             Ver Todos <ChevronRight className="w-4 h-4" />
           </button>
         </div>
@@ -94,6 +98,7 @@ export function GenresView() {
             return (
               <button 
                 key={mood.id}
+                onClick={() => onGenreClick?.(`${mood.name} Music`)}
                 className="flex flex-col items-center justify-center gap-3 p-8 rounded-2xl bg-surface-high hover:bg-primary/10 transition-all group"
               >
                 <Icon className="w-8 h-8 text-primary group-hover:scale-110 transition-transform" />

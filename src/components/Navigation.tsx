@@ -1,41 +1,39 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Home, Library, LayoutGrid, Zap, Wind, Moon, Dumbbell, CloudRain, Music, Search, Bell, Settings, Check, Clock } from 'lucide-react';
+import { NavLink, Link, useNavigate } from 'react-router-dom';
+import { Home, Library, LayoutGrid, Zap, Search, Bell, Settings, Check, Clock } from 'lucide-react';
 import { cn } from '../lib/utils';
 
-interface SidebarProps {
-  activeView: string;
-  onViewChange: (view: string) => void;
-}
-
-export function Sidebar({ activeView, onViewChange }: SidebarProps) {
+export function Sidebar() {
   const navItems = [
-    { id: 'home', name: 'Inicio', icon: Home },
-    { id: 'library', name: 'Biblioteca', icon: Library },
-    { id: 'genres', name: 'Géneros', icon: LayoutGrid },
+    { id: 'home', name: 'Inicio', path: '/', icon: Home },
+    { id: 'library', name: 'Biblioteca', path: '/library', icon: Library },
+    { id: 'genres', name: 'Géneros', path: '/genres', icon: LayoutGrid },
   ];
 
   return (
     <aside className="hidden md:flex h-screen w-64 fixed left-0 top-0 bg-surface-low border-r-4 border-primary shadow-2xl flex-col pt-8 pb-28 z-40">
-      <div className="px-6 mb-8">
-        <h1 className="text-xl font-black text-primary font-headline tracking-tighter">Midnight Curator</h1>
-        <p className="text-[10px] tracking-widest uppercase text-on-surface-variant font-headline opacity-70">Edición Editorial</p>
+      <div className="px-6 mb-8 group cursor-pointer">
+        <Link to="/">
+          <h1 className="text-xl font-black text-primary font-headline tracking-tighter group-hover:scale-105 transition-transform">Midnight Curator</h1>
+          <p className="text-[10px] tracking-widest uppercase text-on-surface-variant font-headline opacity-70 group-hover:opacity-100">Edición Editorial</p>
+        </Link>
       </div>
       
       <nav className="flex-grow space-y-1">
         {navItems.map((item) => (
-          <button
+          <NavLink
             key={item.id}
-            onClick={() => onViewChange(item.id)}
-            className={cn(
+            to={item.path}
+            className={({ isActive }) => cn(
               "w-full flex items-center gap-4 px-6 py-4 transition-all duration-300 font-headline uppercase tracking-widest text-xs text-left",
-              activeView === item.id 
+              isActive 
                 ? "text-primary border-l-4 border-primary bg-surface-high" 
                 : "text-secondary hover:bg-surface-high/50 hover:text-primary"
             )}
           >
             <item.icon className="w-5 h-5" />
             {item.name}
-          </button>
+          </NavLink>
         ))}
       </nav>
 
@@ -52,9 +50,15 @@ export function Sidebar({ activeView, onViewChange }: SidebarProps) {
   );
 }
 
-export function TopNav({ activeView, onViewChange }: SidebarProps) {
+interface TopNavProps {
+  onSearch: (query: string) => void;
+}
+
+export function TopNav({ onSearch }: TopNavProps) {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,6 +70,12 @@ export function TopNav({ activeView, onViewChange }: SidebarProps) {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  const handleSearch = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && searchValue.trim()) {
+      onSearch(searchValue.trim());
+    }
+  };
+
   const notifications = [
     { id: 1, title: 'Nueva curaduría', desc: 'Ecos de Medianoche ha sido actualizada.', time: '2h', type: 'update' },
     { id: 2, title: 'Suscripción Premium', desc: 'Tu plan familiar ha sido activado.', time: '5h', type: 'success' },
@@ -76,35 +86,38 @@ export function TopNav({ activeView, onViewChange }: SidebarProps) {
     <header className="fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-20 z-50 bg-background/80 backdrop-blur-xl flex justify-between items-center px-8">
       <div className="flex items-center flex-1 max-w-xl">
         <div className="relative w-full group">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/60" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-secondary/60 transition-colors group-focus-within:text-primary" />
           <input 
             type="text" 
-            placeholder="Buscar música, estados de ánimo..." 
-            className="w-full bg-surface-high/50 border-none rounded-full py-2.5 pl-12 pr-4 text-sm text-on-surface focus:ring-2 ring-primary/50 transition-all"
+            placeholder="Buscar música, artistas o álbumes..." 
+            value={searchValue}
+            onChange={(e) => setSearchValue(e.target.value)}
+            onKeyUp={handleSearch}
+            className="w-full bg-surface-high/50 border-none rounded-full py-2.5 pl-12 pr-4 text-sm text-on-surface focus:ring-2 ring-primary/50 transition-all placeholder:text-secondary/40 outline-none"
           />
         </div>
       </div>
       
       <div className="flex items-center gap-6 ml-6">
         <nav className="hidden lg:flex items-center gap-6 mr-6">
-          <button 
-            onClick={() => onViewChange('genres')}
-            className={cn(
+          <NavLink 
+            to="/genres"
+            className={({ isActive }) => cn(
               "text-sm font-headline tracking-tight transition-colors uppercase font-bold px-2 py-1",
-              activeView === 'genres' ? "text-primary border-b-2 border-primary" : "text-secondary hover:text-primary"
+              isActive ? "text-primary border-b-2 border-primary" : "text-secondary hover:text-primary"
             )}
           >
             Géneros
-          </button>
-          <button 
-            onClick={() => onViewChange('radio')}
-            className={cn(
+          </NavLink>
+          <NavLink 
+            to="/radio"
+            className={({ isActive }) => cn(
               "text-sm font-headline tracking-tight transition-colors uppercase font-bold px-2 py-1",
-              activeView === 'radio' ? "text-primary border-b-2 border-primary" : "text-secondary hover:text-primary"
+              isActive ? "text-primary border-b-2 border-primary" : "text-secondary hover:text-primary"
             )}
           >
             Radio
-          </button>
+          </NavLink>
         </nav>
         
         <div className="flex items-center gap-4 relative" ref={dropdownRef}>
@@ -154,21 +167,21 @@ export function TopNav({ activeView, onViewChange }: SidebarProps) {
             </div>
           )}
 
-          <button 
-            onClick={() => onViewChange('settings')}
-            className={cn(
+          <NavLink 
+            to="/settings"
+            className={({ isActive }) => cn(
               "p-2 rounded-full transition-colors",
-              activeView === 'settings' ? "bg-primary/10 text-primary" : "text-secondary hover:text-primary hover:bg-surface-high/50"
+              isActive ? "bg-primary/10 text-primary" : "text-secondary hover:text-primary hover:bg-surface-high/50"
             )}
             title="Configuración"
           >
             <Settings className="w-5 h-5" />
-          </button>
-          <button 
-            onClick={() => onViewChange('profile')}
-            className={cn(
+          </NavLink>
+          <NavLink 
+            to="/profile"
+            className={({ isActive }) => cn(
               "w-10 h-10 rounded-full overflow-hidden border-2 transition-all",
-              activeView === 'profile' ? "border-primary" : "border-primary/20 hover:border-primary"
+              isActive ? "border-primary" : "border-primary/20 hover:border-primary"
             )}
             title="Mi Perfil"
           >
@@ -178,7 +191,7 @@ export function TopNav({ activeView, onViewChange }: SidebarProps) {
               className="w-full h-full object-cover"
               referrerPolicy="no-referrer"
             />
-          </button>
+          </NavLink>
         </div>
       </div>
     </header>

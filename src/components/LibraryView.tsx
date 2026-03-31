@@ -1,18 +1,36 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
-import { Play, Plus, Heart, MoreVertical, Music2, Users, Download, Disc } from 'lucide-react';
-import { TRACKS } from '../types';
+import { Play, Heart, Music2, ChevronRight, Sparkles, Disc } from 'lucide-react';
 import { usePlayer } from '../PlayerContext';
+import { multiSourceSearch } from '../lib/searchServices';
+import { Track } from '../types';
 
 export function LibraryView() {
-  const { playTrack } = usePlayer();
+  const { playTrack, likedTracks, toggleLike, isLiked } = usePlayer();
+  const [recommended, setRecommended] = useState<Track[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const fetchMidnightMix = async () => {
+      setLoading(true);
+      try {
+        const results = await multiSourceSearch("Midnight Synthwave curated playlist");
+        setRecommended(results);
+      } catch (error) {
+        console.error("Error fetching library mix:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMidnightMix();
+  }, []);
 
   return (
     <div className="space-y-16">
-      {/* Featured Header */}
+      {/* Dynamic Header */}
       <section className="relative overflow-hidden rounded-[2.5rem] aspect-[21/9] md:aspect-[3/1] bg-surface-low group">
         <img 
-          src="https://picsum.photos/seed/library/1600/600" 
+          src={likedTracks.length > 0 ? likedTracks[0].cover : "https://images.unsplash.com/photo-1493225255756-d9584f8606e9?q=80&w=1600&auto=format&fit=crop"} 
           alt="Library" 
           className="absolute inset-0 w-full h-full object-cover opacity-40 group-hover:scale-105 transition-transform duration-1000"
           referrerPolicy="no-referrer"
@@ -20,127 +38,140 @@ export function LibraryView() {
         <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
         <div className="absolute bottom-0 left-0 p-12 w-full flex flex-col md:flex-row md:items-end justify-between gap-8">
           <div>
-            <span className="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-6 inline-block">Colección Destacada</span>
-            <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter mb-4">Mezclas de Medianoche</h1>
+            <span className="bg-primary/20 text-primary border border-primary/30 px-3 py-1 rounded-full text-[10px] font-bold tracking-widest uppercase mb-6 inline-block">Tu Biblioteca</span>
+            <h1 className="text-4xl md:text-6xl font-extrabold font-headline tracking-tighter mb-4">
+              {likedTracks.length > 0 ? "Tus Favoritos" : "Colección Midnight"}
+            </h1>
             <p className="text-on-surface-variant max-w-lg text-sm md:text-base leading-relaxed">
-              Una selección curada de ritmos sintetizados y atmósferas envolventes para tus sesiones de enfoque nocturno.
+              {likedTracks.length > 0 
+                ? `Tienes ${likedTracks.length} tracks guardados en tu frecuencia personal.`
+                : "Aún no has guardado canciones. Explora la noche y llena tu biblioteca."}
             </p>
           </div>
-          <button 
-            onClick={() => playTrack(TRACKS[0])}
-            className="bg-primary text-background p-6 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
-          >
-            <Play className="w-8 h-8 fill-current ml-1" />
-          </button>
+          {likedTracks.length > 0 && (
+            <button 
+              onClick={() => playTrack(likedTracks[0])}
+              className="bg-primary text-background p-6 rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-transform"
+            >
+              <Play className="w-8 h-8 fill-current ml-1" />
+            </button>
+          )}
         </div>
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-12">
-        {/* Playlists */}
+        {/* Liked Tracks / Main Content */}
         <div className="lg:col-span-8 space-y-8">
           <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold font-headline">Tus Listas de Reproducción</h2>
-            <button className="text-primary text-sm font-medium hover:underline">Ver todo</button>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
-            {[1, 2, 3].map((i) => (
-              <motion.div 
-                key={i}
-                whileHover={{ y: -8 }}
-                className="bg-surface-low/50 p-5 rounded-[2rem] hover:bg-surface-high transition-all group cursor-pointer border border-white/5"
-              >
-                <div className="relative aspect-square mb-5 overflow-hidden rounded-2xl shadow-xl">
-                  <img 
-                    src={`https://picsum.photos/seed/playlist${i}/600/600`} 
-                    alt={`Playlist ${i}`} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    referrerPolicy="no-referrer"
-                  />
-                  <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                    <Play className="w-10 h-10 text-white fill-current" />
-                  </div>
-                </div>
-                <h3 className="font-bold truncate">Playlist Nocturna {i}</h3>
-                <p className="text-xs text-on-surface-variant">42 canciones</p>
-              </motion.div>
-            ))}
+            <h2 className="text-2xl font-bold font-headline flex items-center gap-3">
+              <Heart className="w-6 h-6 text-primary fill-current" />
+              Canciones que te gustan
+            </h2>
           </div>
 
-          {/* Recent Albums */}
-          <div className="space-y-8 pt-8">
-            <h2 className="text-2xl font-bold font-headline">Álbumes Recientes</h2>
-            <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
-              {TRACKS.map((track) => (
-                <div key={track.id} className="flex-shrink-0 w-48 group cursor-pointer">
-                  <div className="aspect-square rounded-2xl overflow-hidden mb-4 shadow-xl group-hover:shadow-primary/10 transition-all">
-                    <img 
-                      src={track.cover} 
-                      alt={track.album} 
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                      referrerPolicy="no-referrer"
-                    />
-                  </div>
-                  <p className="font-bold text-sm truncate">{track.album}</p>
-                  <p className="text-xs text-on-surface-variant">{track.artist}</p>
-                </div>
-              ))}
+          {likedTracks.length === 0 ? (
+            <div className="bg-surface-low rounded-3xl p-12 text-center border border-white/5">
+              <div className="w-16 h-16 bg-surface-high rounded-full flex items-center justify-center mx-auto mb-6">
+                <Music2 className="w-8 h-8 text-on-surface-variant" />
+              </div>
+              <h3 className="text-xl font-bold mb-2">Tu colección está vacía</h3>
+              <p className="text-on-surface-variant mb-6">Las canciones que marques con un corazón aparecerán aquí.</p>
+              <button className="text-primary font-bold text-xs uppercase tracking-widest hover:underline">
+                Explorar Géneros
+              </button>
             </div>
-          </div>
-        </div>
-
-        {/* Sidebar Info */}
-        <div className="lg:col-span-4 space-y-12">
-          {/* Suggested Artists */}
-          <div className="bg-surface-low/50 rounded-[2.5rem] p-8 border border-white/5">
-            <h2 className="text-xl font-bold font-headline mb-8">Artistas Sugeridos</h2>
-            <div className="space-y-6">
-              {[1, 2].map((i) => (
-                <div key={i} className="flex items-center gap-4 group cursor-pointer">
-                  <div className="w-14 h-14 rounded-full overflow-hidden shadow-lg">
-                    <img 
-                      src={`https://picsum.photos/seed/artist${i}/200/200`} 
-                      alt="Artist" 
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform"
-                      referrerPolicy="no-referrer"
-                    />
+          ) : (
+            <div className="space-y-2">
+              {likedTracks.map((track) => (
+                <div 
+                  key={track.id}
+                  className="flex items-center gap-4 p-4 hover:bg-surface-high rounded-2xl transition-all group cursor-pointer border border-transparent hover:border-white/5"
+                >
+                  <div className="relative w-12 h-12 flex-shrink-0" onClick={() => playTrack(track)}>
+                    <img src={track.cover} alt="" className="w-full h-full object-cover rounded-lg" />
+                    <div className="absolute inset-0 bg-black/40 hidden group-hover:flex items-center justify-center rounded-lg">
+                      <Play className="w-5 h-5 text-white fill-current" />
+                    </div>
                   </div>
-                  <div className="flex-1">
-                    <p className="font-bold text-sm">Artista {i}</p>
-                    <p className="text-[10px] text-on-surface-variant uppercase tracking-widest">1.2M Oyentes</p>
+                  <div className="flex-1 min-w-0" onClick={() => playTrack(track)}>
+                    <h4 className="font-bold text-sm truncate">{track.title}</h4>
+                    <p className="text-xs text-on-surface-variant truncate">{track.artist}</p>
                   </div>
-                  <button className="text-primary text-[10px] font-bold px-4 py-1.5 border border-primary/20 rounded-full hover:bg-primary hover:text-background transition-all uppercase tracking-widest">
-                    Seguir
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); toggleLike(track); }}
+                    className="text-primary"
+                  >
+                    <Heart className="w-5 h-5 fill-current" />
                   </button>
                 </div>
               ))}
             </div>
-          </div>
+          )}
 
-          {/* Saved Songs */}
-          <div className="bg-surface-low/50 rounded-[2.5rem] p-8 border border-white/5">
-            <h2 className="text-xl font-bold font-headline mb-8">Canciones Guardadas</h2>
-            <div className="space-y-2">
-              {TRACKS.map((track) => (
-                <div 
-                  key={track.id} 
-                  onClick={() => playTrack(track)}
-                  className="flex items-center gap-4 p-3 hover:bg-surface-high rounded-2xl transition-all cursor-pointer group"
-                >
-                  <div className="w-10 h-10 rounded-lg bg-surface-high flex items-center justify-center relative overflow-hidden">
-                    <Music2 className="w-5 h-5 text-primary group-hover:hidden" />
-                    <Play className="w-5 h-5 text-primary hidden group-hover:block fill-current" />
+          {/* Real Playlists / Midnight Mix */}
+          <div className="space-y-8 pt-8">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold font-headline flex items-center gap-3">
+                <Sparkles className="w-6 h-6 text-primary" />
+                Mixes sugeridos para ti
+              </h2>
+            </div>
+            {loading ? (
+              <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
+                {[1, 2, 3, 4].map(i => (
+                  <div key={i} className="flex-shrink-0 w-48 animate-pulse">
+                    <div className="aspect-square bg-surface-high rounded-2xl mb-4" />
+                    <div className="h-4 bg-surface-high rounded w-3/4 mb-2" />
+                    <div className="h-3 bg-surface-high rounded w-1/2" />
                   </div>
-                  <div className="flex-1 min-w-0">
+                ))}
+              </div>
+            ) : (
+              <div className="flex gap-6 overflow-x-auto pb-4 no-scrollbar">
+                {recommended.map((track) => (
+                  <motion.div 
+                    key={track.id} 
+                    whileHover={{ scale: 1.05 }}
+                    onClick={() => playTrack(track)}
+                    className="flex-shrink-0 w-48 group cursor-pointer"
+                  >
+                    <div className="aspect-square rounded-2xl overflow-hidden mb-4 shadow-xl relative">
+                      <img 
+                        src={track.cover} 
+                        alt={track.title} 
+                        className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Play className="w-10 h-10 text-white fill-current" />
+                      </div>
+                    </div>
                     <p className="font-bold text-sm truncate">{track.title}</p>
                     <p className="text-xs text-on-surface-variant truncate">{track.artist}</p>
-                  </div>
-                  <span className="text-[10px] text-on-surface-variant font-mono">4:03</span>
-                </div>
-              ))}
+                  </motion.div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar info */}
+        <div className="lg:col-span-4 space-y-12">
+           <div className="bg-surface-low/50 rounded-[2.5rem] p-8 border border-white/5">
+            <h2 className="text-xl font-bold font-headline mb-8 flex items-center gap-2">
+              <Disc className="w-5 h-5 text-primary" />
+              Suscripción
+            </h2>
+            <div className="p-6 bg-primary/10 rounded-3xl border border-primary/20 mb-6">
+              <p className="text-xs font-bold uppercase tracking-widest text-primary mb-2">Plan Midnight Premium</p>
+              <h3 className="text-lg font-black mb-4">Escucha sin límites</h3>
+              <p className="text-xs text-on-surface-variant leading-relaxed mb-6">
+                Accede a la máxima calidad de audio y descarga tus mixes favoritos para la noche profunda.
+              </p>
+              <button className="w-full py-3 bg-primary text-background font-black text-[10px] uppercase tracking-widest rounded-full hover:scale-105 transition-transform">
+                Gestionar Plan
+              </button>
             </div>
-            <button className="w-full mt-8 py-3 text-[10px] font-bold text-on-surface-variant hover:text-primary transition-colors uppercase tracking-widest flex items-center justify-center gap-2">
-              Mostrar más
-            </button>
           </div>
         </div>
       </div>

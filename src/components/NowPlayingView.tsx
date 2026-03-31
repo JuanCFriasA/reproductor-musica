@@ -1,7 +1,8 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { usePlayer } from '../PlayerContext';
-import { ChevronDown, Heart, ListPlus, Share2, Music2, Maximize2, Minimize2 } from 'lucide-react';
+import { ChevronDown, Heart, ListPlus, Share2, Music2, Loader2, ExternalLink } from 'lucide-react';
+import { getLyrics } from '../lib/searchServices';
 import { cn } from '../lib/utils';
 
 interface NowPlayingViewProps {
@@ -10,6 +11,18 @@ interface NowPlayingViewProps {
 
 export function NowPlayingView({ onClose }: NowPlayingViewProps) {
   const { currentTrack } = usePlayer();
+  const [lyrics, setLyrics] = React.useState<string[] | null>(null);
+  const [loadingLyrics, setLoadingLyrics] = React.useState(false);
+
+  React.useEffect(() => {
+    const fetchLyrics = async () => {
+      setLoadingLyrics(true);
+      const res = await getLyrics(currentTrack.artist, currentTrack.title);
+      setLyrics(res);
+      setLoadingLyrics(false);
+    };
+    fetchLyrics();
+  }, [currentTrack.id]);
 
   return (
     <motion.div 
@@ -75,25 +88,34 @@ export function NowPlayingView({ onClose }: NowPlayingViewProps) {
 
         {/* Lyrics */}
         <div className="bg-surface-low/40 rounded-[2.5rem] p-10 h-96 overflow-y-auto no-scrollbar border border-white/5 backdrop-blur-md">
-          <div className="space-y-8">
-            {currentTrack.lyrics?.map((line, i) => (
-              <p 
-                key={i}
-                className={cn(
-                  "transition-all duration-500",
-                  i === 2 ? "text-primary text-3xl font-bold tracking-tight" : "text-on-surface-variant text-xl font-light opacity-40 hover:opacity-100"
-                )}
-              >
-                {line}
-              </p>
-            ))}
-            {!currentTrack.lyrics && (
-              <div className="h-full flex flex-col items-center justify-center text-on-surface-variant opacity-40 space-y-4">
-                <Music2 className="w-12 h-12" />
-                <p>No hay letras disponibles para esta canción</p>
+          {loadingLyrics ? (
+            <div className="h-full flex flex-col items-center justify-center space-y-4 animate-pulse">
+              <Loader2 className="w-10 h-10 text-primary animate-spin" />
+              <p className="text-secondary font-headline uppercase tracking-widest text-[10px]">Buscando versos en la red...</p>
+            </div>
+          ) : lyrics ? (
+            <div className="space-y-8">
+              {lyrics.map((line, i) => (
+                <p 
+                  key={i}
+                  className="text-on-surface-variant text-xl font-light hover:opacity-100 hover:text-white transition-all cursor-default"
+                >
+                  {line}
+                </p>
+              ))}
+              <div className="pt-8 text-center">
+                <p className="text-[10px] text-secondary font-bold uppercase tracking-widest opacity-60">Datos curados por Genius & Lyrics.ovh</p>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+             <div className="h-full flex flex-col items-center justify-center text-on-surface-variant opacity-40 space-y-4">
+              <Music2 className="w-12 h-12" />
+              <p className="text-sm font-bold uppercase tracking-widest">No hay letras disponibles</p>
+              <button className="flex items-center gap-2 text-[10px] text-primary hover:underline">
+                Buscar en Genius <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Actions */}
