@@ -19,6 +19,83 @@
   body {
     @apply bg-background text-on-surface font-sans antialiased;
   }
+  
+  /* --- Unified Cursor System (Native OS Styles) --- */
+  
+  /* Pointer Cursor (Interactive Elements) */
+  button, 
+  [role="button"], 
+  a, 
+  select, 
+  summary,
+  input[type="submit"], 
+  input[type="button"], 
+  input[type="checkbox"], 
+  input[type="radio"],
+  input[type="file"]::-webkit-file-upload-button,
+  .cursor-pointer {
+    cursor: pointer !important;
+  }
+  
+  /* Text Cursor (Editable/Copyable Content) */
+  input[type="text"], 
+  input[type="email"], 
+  input[type="password"], 
+  input[type="search"], 
+  input[type="url"], 
+  input[type="number"], 
+  input[type="tel"],
+  textarea, 
+  [contenteditable="true"],
+  .cursor-text {
+    cursor: text !important;
+  }
+  
+  /* Disabled State */
+  button:disabled, 
+  input:disabled, 
+  textarea:disabled,
+  select:disabled,
+  [aria-disabled="true"],
+  .cursor-not-allowed {
+    cursor: not-allowed !important;
+  }
+  
+  /* Moving & Layout */
+  .cursor-move, [draggable="true"] {
+    cursor: move !important;
+  }
+  
+  /* Progress & Slider Controls */
+  input[type="range"] {
+    cursor: pointer;
+  }
+
+  input[type="range"]:active {
+    cursor: grabbing !important;
+  }
+  
+  input[type="range"]:hover:not(:active) {
+    cursor: pointer;
+  }
+
+  /* Wait & Busy States */
+  [data-loading="true"], 
+  [data-loading="true"] *,
+  .is-loading,
+  .cursor-wait {
+    cursor: wait !important;
+  }
+  
+  /* Helper for help/tooltips */
+  .cursor-help, [title] {
+    cursor: help;
+  }
+
+  /* Reset for non-interactive parent labels */
+  label {
+    cursor: inherit;
+  }
 }
 
 .no-scrollbar::-webkit-scrollbar {

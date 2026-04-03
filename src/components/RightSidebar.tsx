@@ -42,8 +42,8 @@ export function RightSidebar() {
   }
 
   return (
-    <aside className="hidden lg:flex h-screen w-80 fixed right-0 top-0 bg-background border-l border-white/5 flex-col pt-8 pb-28 z-40">
-      <div className="px-5 pt-10 flex flex-col h-full overflow-hidden">
+    <aside className="hidden lg:flex h-screen w-80 fixed right-0 top-0 bg-background border-l border-white/5 flex-col pt-24 pb-28 z-40">
+      <div className="px-5 flex flex-col h-full overflow-hidden">
 
         {/* Tabs */}
         <div className="flex gap-1 bg-surface-high/30 p-1 rounded-2xl mb-6 flex-shrink-0">

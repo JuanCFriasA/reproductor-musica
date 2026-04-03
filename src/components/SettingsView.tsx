@@ -7,7 +7,7 @@
  *  – Friends: search users, send request, manage list
  */
 import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, Check, X, UserPlus, Trash2, Search, Camera, Key, User, Users } from 'lucide-react';
+import { Loader2, Check, X, UserPlus, Trash2, Search, Camera, Key, User as UserIcon, Users } from 'lucide-react';
 import { useAuth, API_BASE } from '../AuthContext';
 import { cn } from '../lib/utils';
 
@@ -49,7 +49,7 @@ export function SettingsView() {
   if (!user || !token) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-        <User className="w-16 h-16 text-secondary/20" />
+        <UserIcon className="w-16 h-16 text-secondary/20" />
         <p className="text-secondary">Inicia sesión para acceder a la configuración</p>
       </div>
     );
@@ -63,7 +63,7 @@ export function SettingsView() {
 
       {/* Tabs */}
       <div className="flex gap-1 bg-surface-high/30 p-1 rounded-2xl w-fit">
-        {([['profile', 'Perfil', User], ['security', 'Seguridad', Key], ['friends', 'Amigos', Users]] as const).map(([id, label, Icon]) => (
+        {([['profile', 'Perfil', UserIcon], ['security', 'Seguridad', Key], ['friends', 'Amigos', Users]] as const).map(([id, label, Icon]) => (
           <button key={id} onClick={() => setTab(id)}
             className={cn('flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest transition-all',
               tab === id ? 'bg-primary text-background shadow-md' : 'text-secondary hover:text-primary')}>
@@ -115,13 +115,19 @@ function ProfileTab({ token, user, showToast }: any) {
       <section className="bg-surface-low/40 rounded-3xl p-8 border border-white/5">
         <SectionTitle icon={Camera} label="Foto de perfil" />
         <div className="flex items-start gap-6">
-          <div className="relative flex-shrink-0">
-            <img
-              src={preview || `https://picsum.photos/seed/${user.username}/200/200`}
-              alt="avatar"
-              onError={() => setPreview(`https://picsum.photos/seed/${user.username}/200/200`)}
-              className="w-24 h-24 rounded-full object-cover border-4 border-primary/30"
-            />
+          <div className="relative flex-shrink-0 w-24 h-24 rounded-full overflow-hidden border-4 border-primary/30 flex items-center justify-center bg-surface-high/30">
+            {preview ? (
+              <img
+                src={preview}
+                alt="avatar"
+                onError={() => setPreview('')}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center">
+                <UserIcon className="w-12 h-12 text-primary/40" />
+              </div>
+            )}
           </div>
           <div className="flex-1 space-y-3">
             <label className="text-xs font-bold uppercase tracking-widest text-secondary block">
@@ -146,7 +152,7 @@ function ProfileTab({ token, user, showToast }: any) {
 
       {/* Info */}
       <section className="bg-surface-low/40 rounded-3xl p-8 border border-white/5 space-y-5">
-        <SectionTitle icon={User} label="Información" />
+        <SectionTitle icon={UserIcon} label="Información" />
 
         <div>
           <label className="text-xs font-bold uppercase tracking-widest text-secondary block mb-2">

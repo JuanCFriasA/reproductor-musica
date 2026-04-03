@@ -1,26 +1,23 @@
-/**
- * src/AuthContext.tsx
- * Provides login / register / logout + JWT token management.
- */
-
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext } from 'react';
+import { useUser, useAuth as useClerkAuth, useClerk } from '@clerk/clerk-react';
 
 // ── Types ─────────────────────────────────────
 export interface User {
-  id: number;
+  id: string;
   username: string;
   email: string;
   avatarUrl: string | null;
 }
 
 interface AuthContextType {
-  user:      User | null;
-  token:     string | null;
+  user: User | null;
+  token: string | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login:    (email: string, password: string) => Promise<void>;
+  tokenReady: boolean;
+  login: (email: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
-  logout:   () => void;
+  logout: () => void;
 }
 
 export const API_BASE = 'http://localhost:4000';
@@ -29,64 +26,40 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // ── Provider ──────────────────────────────────
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user,      setUser]      = useState<User | null>(null);
-  const [token,     setToken]     = useState<string | null>(() => localStorage.getItem('mc_token'));
-  const [isLoading, setIsLoading] = useState(true);
+  const { user: clerkUser, isLoaded } = useUser();
+  const { getToken, userId } = useClerkAuth();
+  const { signOut } = useClerk();
 
-  // Verify stored token on mount
-  useEffect(() => {
-    if (!token) { setIsLoading(false); return; }
+  // Map Clerk user to our local User type
+  const user: User | null = clerkUser ? {
+    id: clerkUser.id,
+    username: clerkUser.username || clerkUser.firstName || 'User',
+    email: clerkUser.primaryEmailAddress?.emailAddress || '',
+    avatarUrl: (clerkUser as any).hasImage ? clerkUser.imageUrl : null,
+  } : null;
 
-    fetch(`${API_BASE}/api/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (data) setUser(data);
-        else      clearToken();
-      })
-      .catch(clearToken)
-      .finally(() => setIsLoading(false));
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const login = async () => {
+    // This is now handled by Clerk's UI or hooks
+    console.warn("Manual login called. Use Clerk SignIn instead.");
+  };
 
-  function clearToken() {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem('mc_token');
-  }
-
-  function saveToken(newToken: string, newUser: User) {
-    setToken(newToken);
-    setUser(newUser);
-    localStorage.setItem('mc_token', newToken);
-  }
-
-  async function login(email: string, password: string) {
-    const res  = await fetch(`${API_BASE}/api/auth/login`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Login failed');
-    saveToken(data.token, data.user);
-  }
-
-  async function register(username: string, email: string, password: string) {
-    const res  = await fetch(`${API_BASE}/api/auth/register`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ username, email, password }),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Registration failed');
-    saveToken(data.token, data.user);
-  }
+  const register = async () => {
+    // This is now handled by Clerk's UI or hooks
+    console.warn("Manual register called. Use Clerk SignUp instead.");
+  };
 
   return (
     <AuthContext.Provider
-      value={{ user, token, isLoading, isLoggedIn: !!user, login, register, logout: clearToken }}
+      value={{ 
+        user, 
+        token: null, // Tokens should be fetched via getToken() as needed
+        isLoading: !isLoaded, 
+        isLoggedIn: !!userId, 
+        tokenReady: isLoaded,
+        login, 
+        register, 
+        logout: () => signOut() 
+      }}
     >
       {children}
     </AuthContext.Provider>

@@ -11,7 +11,7 @@ import { NavLink, Link } from 'react-router-dom';
 import {
   Home, Library, LayoutGrid, Search, Bell,
   Settings, LogOut, Check, X, UserPlus, Music,
-  CheckCheck, Trash2,
+  CheckCheck, Trash2, User as UserIcon,
 } from 'lucide-react';
 import { cn } from '../lib/utils';
 import { useAuth, API_BASE } from '../AuthContext';
@@ -22,9 +22,9 @@ import type { Notification } from '../types';
 export function Sidebar() {
   const [hovered, setHovered] = useState(false);
   const navItems = [
-    { id: 'home',    name: 'Inicio',     path: '/',        icon: Home },
+    { id: 'home', name: 'Inicio', path: '/', icon: Home },
     { id: 'library', name: 'Biblioteca', path: '/library', icon: Library },
-    { id: 'genres',  name: 'Géneros',    path: '/genres',  icon: LayoutGrid },
+    { id: 'genres', name: 'Géneros', path: '/genres', icon: LayoutGrid },
   ];
 
   return (
@@ -61,48 +61,48 @@ export function Sidebar() {
 
 // ── TopNav ────────────────────────────────────────────
 interface TopNavProps {
-  onSearch:     (q: string) => void;
+  onSearch: (q: string) => void;
   onLoginClick?: () => void;
-  isLoggedIn?:  boolean;
-  user?:        User | null;
-  onLogout?:    () => void;
+  isLoggedIn?: boolean;
+  user?: User | null;
+  onLogout?: () => void;
 }
 
 function timeAgo(dateStr: string) {
   const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
-  if (diff < 60)   return 'ahora';
-  if (diff < 3600) return `${Math.floor(diff/60)}m`;
-  if (diff < 86400) return `${Math.floor(diff/3600)}h`;
-  return `${Math.floor(diff/86400)}d`;
+  if (diff < 60) return 'ahora';
+  if (diff < 3600) return `${Math.floor(diff / 60)}m`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
+  return `${Math.floor(diff / 86400)}d`;
 }
 
 const notifIcon: Record<string, React.ReactNode> = {
   friend_request: <UserPlus className="w-4 h-4" />,
-  friend_accepted: <Check  className="w-4 h-4" />,
-  system:          <Bell   className="w-4 h-4" />,
-  new_track:       <Music  className="w-4 h-4" />,
+  friend_accepted: <Check className="w-4 h-4" />,
+  system: <Bell className="w-4 h-4" />,
+  new_track: <Music className="w-4 h-4" />,
 };
 const notifColor: Record<string, string> = {
-  friend_request:  'bg-primary/20 text-primary',
+  friend_request: 'bg-primary/20 text-primary',
   friend_accepted: 'bg-green-500/20 text-green-400',
-  system:          'bg-secondary/20 text-secondary',
-  new_track:       'bg-blue-500/20 text-blue-400',
+  system: 'bg-secondary/20 text-secondary',
+  new_track: 'bg-blue-500/20 text-blue-400',
 };
 
 export function TopNav({ onSearch, onLoginClick, isLoggedIn, user, onLogout }: TopNavProps) {
   const { token } = useAuth();
-  const [searchValue,    setSearchValue]   = useState('');
-  const [showNotifs,     setShowNotifs]    = useState(false);
-  const [showUserMenu,   setShowUserMenu]  = useState(false);
-  const [notifications,  setNotifications] = useState<Notification[]>([]);
-  const [unread,         setUnread]        = useState(0);
+  const [searchValue, setSearchValue] = useState('');
+  const [showNotifs, setShowNotifs] = useState(false);
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unread, setUnread] = useState(0);
   const panelRef = useRef<HTMLDivElement>(null);
 
   // ── Fetch notifications ──────────────────────
   const fetchNotifs = useCallback(async () => {
     if (!token) return;
     try {
-      const res  = await fetch(`${API_BASE}/api/notifications`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_BASE}/api/notifications`, { headers: { Authorization: `Bearer ${token}` } });
       if (!res.ok) return;
       const data = await res.json();
       setNotifications(data.notifications);
@@ -130,21 +130,21 @@ export function TopNav({ onSearch, onLoginClick, isLoggedIn, user, onLogout }: T
   // ── Helpers ──────────────────────────────────
   const markRead = async (id: number) => {
     if (!token) return;
-    await fetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    await fetch(`${API_BASE}/api/notifications/${id}/read`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }).catch(() => { });
     setNotifications(p => p.map(n => n.id === id ? { ...n, isRead: true } : n));
     setUnread(p => Math.max(0, p - 1));
   };
 
   const markAllRead = async () => {
     if (!token) return;
-    await fetch(`${API_BASE}/api/notifications/read-all`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    await fetch(`${API_BASE}/api/notifications/read-all`, { method: 'PUT', headers: { Authorization: `Bearer ${token}` } }).catch(() => { });
     setNotifications(p => p.map(n => ({ ...n, isRead: true })));
     setUnread(0);
   };
 
   const clearAll = async () => {
     if (!token) return;
-    await fetch(`${API_BASE}/api/notifications`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => {});
+    await fetch(`${API_BASE}/api/notifications`, { method: 'DELETE', headers: { Authorization: `Bearer ${token}` } }).catch(() => { });
     setNotifications([]); setUnread(0);
   };
 
@@ -296,18 +296,23 @@ export function TopNav({ onSearch, onLoginClick, isLoggedIn, user, onLogout }: T
           )}
         </div>
 
- 
+
 
         {/* User / Login */}
         {isLoggedIn && user ? (
           <div className="relative">
             <button
               onClick={() => { setShowUserMenu(p => !p); setShowNotifs(false); }}
-              className={cn('w-10 h-10 rounded-full overflow-hidden border-2 transition-all',
-                showUserMenu ? 'border-primary' : 'border-primary/20 hover:border-primary')}
+              className={cn('w-10 h-10 rounded-full overflow-hidden border-2 transition-all flex items-center justify-center bg-surface-high/30',
+                showUserMenu ? 'border-primary shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)]' : 'border-primary/20 hover:border-primary')}
             >
-              <img src={user.avatarUrl || `https://picsum.photos/seed/${user.username}/100/100`}
-                alt={user.username} className="w-full h-full object-cover" />
+              {user.avatarUrl ? (
+                <img src={user.avatarUrl} alt={user.username} className="w-full h-full object-cover" />
+              ) : (
+                <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center">
+                  <UserIcon className="w-5 h-5 text-primary/40" />
+                </div>
+              )}
             </button>
 
             {showUserMenu && (

@@ -8,7 +8,7 @@
 import React, { createContext, useContext, useState, useRef, useEffect, useCallback } from 'react';
 import { Track } from './types';
 import { resolveYouTubeId } from './lib/searchServices';
-import { getRelatedTracks } from './lib/relatedTracks';
+import { getRelatedTracks } from './lib/RelatedTracks';
 import { API_BASE } from './AuthContext';
 
 interface PlayerContextType {
@@ -260,9 +260,10 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
     setHistory(h => [...h, currentTrack].filter(t => t.id !== '__silent__').slice(-50));
     setIsPlaying(true);
 
-    // Resolve YouTube ID for search-mode tracks
-    if (!track.isYouTube && track.isSearchMode) {
+    // Auto-Resolve YouTube ID for any non-YouTube, non-Radio track (converts 30s previews to full songs)
+    if (!track.isYouTube && !track.isRadio) {
       try {
+        console.log(`Resolving full version for: ${track.artist} - ${track.title}`);
         const ytId = await resolveYouTubeId(track.artist, track.title);
         if (ytId) {
           setCurrentTrack(prev =>
@@ -271,7 +272,9 @@ export function PlayerProvider({ children }: { children: React.ReactNode }) {
               : prev
           );
         }
-      } catch { /* silent */ }
+      } catch (e) {
+        console.warn('Failed to resolve full song, staying with preview/direct link.');
+      }
     }
   }
 

@@ -1,12 +1,16 @@
 /**
- * src/App.tsx  v2
+ * src/App.tsx  v5 - Final Navigation fix
  */
 import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'motion/react';
-import { Zap, X, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { PlayerProvider } from './PlayerContext';
+import { Zap, User as UserIcon } from 'lucide-react';
+import { PlayerProvider, usePlayer } from './PlayerContext';
 import { AuthProvider, useAuth, API_BASE } from './AuthContext';
+import { 
+  ClerkProvider, 
+  AuthenticateWithRedirectCallback 
+} from '@clerk/clerk-react';
 import { Sidebar, TopNav } from './components/Navigation';
 import { Player } from './components/Player';
 import { RightSidebar } from './components/RightSidebar';
@@ -16,8 +20,8 @@ import { LibraryView } from './components/LibraryView';
 import { NowPlayingView } from './components/NowPlayingView';
 import { SearchView } from './components/SearchView';
 import { SettingsView } from './components/SettingsView';
-import { usePlayer } from './PlayerContext';
-import type { Track } from './types';
+import { LoginView } from './components/LoginView';
+import { RegisterView } from './components/RegisterView';
 
 // ── Profile view ──────────────────────────────
 function ProfileView() {
@@ -33,9 +37,14 @@ function ProfileView() {
   return (
     <div className="max-w-4xl space-y-12">
       <div className="flex items-end gap-8 pb-8 border-b border-white/10">
-        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-primary">
-          <img src={user?.avatarUrl || `https://picsum.photos/seed/${user?.username || 'user'}/200/200`}
-            alt="avatar" className="w-full h-full object-cover" />
+        <div className="w-40 h-40 rounded-full overflow-hidden border-4 border-primary flex items-center justify-center bg-surface-high/30 relative group">
+          {user?.avatarUrl ? (
+            <img src={user.avatarUrl} alt="avatar" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-primary/20 via-background to-secondary/20 flex items-center justify-center">
+              <UserIcon className="w-20 h-20 text-primary/40" />
+            </div>
+          )}
         </div>
         <div className="mb-4">
           <span className="text-[10px] uppercase tracking-[0.2em] font-bold text-primary">
@@ -66,25 +75,6 @@ function ProfileView() {
           </div>
         ))}
       </div>
-
-      {stats?.topSongs?.length > 0 && (
-        <div>
-          <h3 className="text-xl font-bold font-headline mb-6">Tus canciones más escuchadas</h3>
-          <div className="space-y-3">
-            {stats.topSongs.slice(0, 5).map((song: any, i: number) => (
-              <div key={song.trackId} className="flex items-center gap-4 p-3 bg-surface-low/30 rounded-2xl border border-white/5">
-                <span className="text-2xl font-black text-primary/40 w-8 text-center">{i + 1}</span>
-                <img src={song.cover} alt="" className="w-10 h-10 rounded-lg object-cover" referrerPolicy="no-referrer" />
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-sm truncate">{song.title}</p>
-                  <p className="text-xs text-secondary truncate">{song.artist}</p>
-                </div>
-                <span className="text-xs text-primary font-bold">{song.playCount}×</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -135,146 +125,89 @@ function RadioView() {
   );
 }
 
-// ── Auth Modal ────────────────────────────────
-function AuthModal({ onClose }: { onClose: () => void }) {
-  const { login, register } = useAuth();
-  const [mode,    setMode]    = useState<'login' | 'register'>('login');
-  const [username, setUsername] = useState('');
-  const [email,   setEmail]   = useState('');
-  const [password, setPassword] = useState('');
-  const [showPwd, setShowPwd] = useState(false);
-  const [error,   setError]   = useState('');
-  const [loading, setLoading] = useState(false);
-
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault(); setError(''); setLoading(true);
-    try {
-      mode === 'login' ? await login(email, password) : await register(username, email, password);
-      onClose();
-    } catch (err: any) { setError(err.message); }
-    finally { setLoading(false); }
-  };
-
-  return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[70] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
-      onClick={e => e.target === e.currentTarget && onClose()}
-    >
-      <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
-        className="w-full max-w-md bg-surface-low border border-white/10 rounded-3xl p-8 shadow-2xl">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h2 className="text-2xl font-headline font-black uppercase tracking-tighter">
-              {mode === 'login' ? 'Bienvenido' : 'Crear cuenta'}
-            </h2>
-            <p className="text-secondary text-xs mt-1">
-              {mode === 'login' ? 'Accede a tu colección nocturna' : 'Únete a Midnight Cruise'}
-            </p>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/5 rounded-full text-secondary hover:text-primary transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={submit} className="space-y-4">
-          {mode === 'register' && (
-            <div>
-              <label className="text-xs font-bold uppercase tracking-widest text-secondary block mb-2">Nombre de usuario</label>
-              <input type="text" value={username} onChange={e => setUsername(e.target.value)} placeholder="curador_nocturno" required
-                className="w-full bg-surface-high/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-on-surface placeholder:text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
-            </div>
-          )}
-          <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-secondary block mb-2">Correo electrónico</label>
-            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" required
-              className="w-full bg-surface-high/60 border border-white/10 rounded-2xl px-4 py-3 text-sm text-on-surface placeholder:text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
-          </div>
-          <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-secondary block mb-2">Contraseña</label>
-            <div className="relative">
-              <input type={showPwd ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)}
-                placeholder="••••••••" required minLength={6}
-                className="w-full bg-surface-high/60 border border-white/10 rounded-2xl px-4 py-3 pr-12 text-sm text-on-surface placeholder:text-secondary/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" />
-              <button type="button" onClick={() => setShowPwd(p => !p)}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-secondary/40 hover:text-primary transition-colors">
-                {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-          {error && <p className="text-red-400 text-xs bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-2">{error}</p>}
-          <button type="submit" disabled={loading}
-            className="w-full py-3.5 bg-primary text-background font-black uppercase text-xs tracking-widest rounded-full hover:scale-[1.02] transition-transform disabled:opacity-50 disabled:scale-100 flex items-center justify-center gap-2 mt-2">
-            {loading && <Loader2 className="w-4 h-4 animate-spin" />}
-            {mode === 'login' ? 'Entrar' : 'Crear cuenta'}
-          </button>
-        </form>
-
-        <p className="text-center text-xs text-secondary mt-6">
-          {mode === 'login' ? '¿No tienes cuenta?' : '¿Ya tienes cuenta?'}{' '}
-          <button onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setError(''); }}
-            className="text-primary font-bold hover:underline">
-            {mode === 'login' ? 'Regístrate' : 'Inicia sesión'}
-          </button>
-        </p>
-      </motion.div>
-    </motion.div>
-  );
-}
-
-// ── Main Layout ───────────────────────────────
-function MainLayout() {
-  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
-  const [showAuthModal,    setShowAuthModal]    = useState(false);
-  const { isLoggedIn, logout, user } = useAuth();
-  const navigate = useNavigate();
+// ── App Container (Shell Logic) ────────────────
+function AppInner() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const { isLoggedIn, logout, user } = useAuth();
+  const [isPlayerExpanded, setIsPlayerExpanded] = useState(false);
 
-  const handleSearch    = (q: string) => navigate(`/search?q=${encodeURIComponent(q)}`);
+  const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const handleSearch = (q: string) => navigate(`/search?q=${encodeURIComponent(q)}`);
   const handleGenreClick = (g: string) => handleSearch(g);
 
   return (
-    <div className="min-h-screen bg-background text-on-surface selection:bg-primary/30">
-      <Sidebar />
-      <TopNav onSearch={handleSearch} onLoginClick={() => setShowAuthModal(true)}
-        isLoggedIn={isLoggedIn} user={user} onLogout={logout} />
-      <RightSidebar />
+    <div className="min-h-screen bg-background text-on-surface selection:bg-primary/30 relative">
+      {/* Shell is only visible for non-auth pages */}
+      {!isAuthPage && (
+        <>
+          <Sidebar />
+          <TopNav 
+            onSearch={handleSearch} 
+            onLoginClick={() => navigate('/login')}
+            isLoggedIn={isLoggedIn} 
+            user={user} 
+            onLogout={logout} 
+          />
+          <RightSidebar />
+        </>
+      )}
 
-      <main className="md:ml-20 lg:mr-80 pt-24 pb-32 px-6 md:px-12 overflow-hidden">
-        <AnimatePresence mode="wait">
-          <motion.div key={location.pathname}
-            initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-            transition={{ duration: 0.25 }}>
+      {/* Main Content Area */}
+      <main className={!isAuthPage ? 'md:ml-20 lg:mr-80 pt-24 pb-32 px-6 md:px-12 min-h-screen relative' : 'w-full h-screen overflow-hidden'}>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.div
+            key={location.pathname + (isAuthPage ? '' : location.search)}
+            initial={{ opacity: 0, y: isAuthPage ? 0 : 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: isAuthPage ? 0 : -10 }}
+            transition={{ duration: 0.35 }}
+            className="w-full h-full"
+          >
             <Routes location={location}>
-              <Route path="/"         element={<HomeView />} />
-              <Route path="/library"  element={<LibraryView />} />
-              <Route path="/genres"   element={<GenresView onGenreClick={handleGenreClick} />} />
-              <Route path="/radio"    element={<RadioView />} />
+              <Route path="/sso-callback" element={<AuthenticateWithRedirectCallback />} />
+              <Route path="/login" element={<LoginView />} />
+              <Route path="/register" element={<RegisterView />} />
+              <Route path="/" element={<HomeView />} />
+              <Route path="/library" element={<LibraryView />} />
+              <Route path="/genres" element={<GenresView onGenreClick={handleGenreClick} />} />
+              <Route path="/radio" element={<RadioView />} />
               <Route path="/settings" element={<SettingsView />} />
-              <Route path="/profile"  element={<ProfileView />} />
-              <Route path="/search"   element={<SearchView query={new URLSearchParams(location.search).get('q') || ''} />} />
+              <Route path="/profile" element={<ProfileView />} />
+              <Route path="/search" element={<SearchView query={new URLSearchParams(location.search).get('q') || ''} />} />
             </Routes>
           </motion.div>
         </AnimatePresence>
       </main>
 
-      <Player onExpand={() => setIsPlayerExpanded(true)} />
-
-      <AnimatePresence>
-        {isPlayerExpanded && <NowPlayingView onClose={() => setIsPlayerExpanded(false)} />}
-        {showAuthModal    && <AuthModal onClose={() => setShowAuthModal(false)} />}
-      </AnimatePresence>
+      {!isAuthPage && (
+        <>
+          <Player onExpand={() => setIsPlayerExpanded(true)} />
+          <AnimatePresence>
+            {isPlayerExpanded && <NowPlayingView onClose={() => setIsPlayerExpanded(false)} />}
+          </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }
 
+// ── Root App Component ────────────────────────
 export default function App() {
   return (
-    <AuthProvider>
-      <PlayerProvider>
-        <Router>
-          <MainLayout />
-        </Router>
-      </PlayerProvider>
-    </AuthProvider>
+    <ClerkProvider 
+      publishableKey={import.meta.env.VITE_CLERK_PUBLISHABLE_KEY || ''}
+      fallbackRedirectUrl="/"
+      signInUrl="/login"
+      signUpUrl="/register"
+    >
+      <AuthProvider>
+        <PlayerProvider>
+          <Router>
+            <AppInner />
+          </Router>
+        </PlayerProvider>
+      </AuthProvider>
+    </ClerkProvider>
   );
 }
